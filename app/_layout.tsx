@@ -1,13 +1,16 @@
 // app/_layout.tsx
 import { Slot, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { AuthProvider, useAuth } from "../src/auth";
 
 export default function Root() {
   return (
-    <AuthProvider>
-      <Gate />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <Gate />
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -50,7 +53,7 @@ function Gate() {
   }
 
   const inAuth = segments[0] === "(auth)";
-  
+
   // Non mostrare niente se stai per essere reindirizzato
   if (status === "guest" && !inAuth) {
     return null;

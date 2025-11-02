@@ -1,5 +1,6 @@
 import * as Google from "expo-auth-session/providers/google";
 import Constants from "expo-constants";
+import { LinearGradient } from "expo-linear-gradient";
 import * as WebBrowser from "expo-web-browser";
 import {
   createUserWithEmailAndPassword,
@@ -10,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Animated,
   Pressable,
   StyleSheet,
   Text,
@@ -24,14 +26,37 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [slideAnim] = useState(new Animated.Value(30));
+  const [scaleAnim] = useState(new Animated.Value(0.95));
 
   const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId;
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: googleWebClientId,
-    iosClientId: googleWebClientId, // Per iOS usa lo stesso client ID
-    // androidClientId: googleWebClientId, // Decommenta per Android
+    iosClientId: googleWebClientId,
   });
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, scaleAnim]);
 
   useEffect(() => {
     if (response?.type === "success") {
@@ -45,7 +70,6 @@ export default function Login() {
       setLoading(true);
       const credential = GoogleAuthProvider.credential(idToken);
       await signInWithCredential(auth, credential);
-      // Il redirect sarà gestito automaticamente dal Gate
     } catch (error: any) {
       console.error("Google sign-in error:", error);
       Alert.alert("Errore Google Login", error.message);
@@ -87,145 +111,235 @@ export default function Login() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Theoremz Login</Text>
-
-      <Pressable
-        style={[styles.googleButton, loading && styles.buttonDisabled]}
-        onPress={() => promptAsync()}
-        disabled={loading || !request}
+    <LinearGradient
+      colors={["#000000", "#0a0a0a", "#0f1419"]}
+      style={styles.container}
+    >
+      <Animated.View
+        style={[
+          styles.content,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+          },
+        ]}
       >
-        <Text style={styles.googleButtonText}>🔍 Continua con Google</Text>
-      </Pressable>
+        <View style={styles.header}>
+          <Text style={styles.logo}>✧</Text>
+          <Text style={styles.title}>Theoremz</Text>
+          <Text style={styles.subtitle}>Accedi per continuare</Text>
+        </View>
 
-      <View style={styles.divider}>
-        <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>oppure</Text>
-        <View style={styles.dividerLine} />
-      </View>
+        <Pressable
+          style={({ pressed }) => [
+            styles.googleButton,
+            loading && styles.buttonDisabled,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={() => promptAsync()}
+          disabled={loading || !request}
+        >
+          <View style={styles.buttonContent}>
+            <Text style={styles.googleIcon}>G</Text>
+            <Text style={styles.googleButtonText}>Continua con Google</Text>
+          </View>
+        </Pressable>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-        editable={!loading}
-      />
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>oppure</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        editable={!loading}
-      />
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor="#6b7280"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!loading}
+          />
+        </View>
 
-      <Pressable
-        style={[styles.button, loading && styles.buttonDisabled]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.buttonText}>
-          {loading ? "Caricamento..." : "Login"}
+        <View style={styles.inputContainer}>
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor="#6b7280"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!loading}
+          />
+        </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.button,
+            loading && styles.buttonDisabled,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          <LinearGradient
+            colors={["#1d9bf0", "#1a8cd8"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.buttonGradient}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? "Caricamento..." : "Accedi"}
+            </Text>
+          </LinearGradient>
+        </Pressable>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.buttonSecondary,
+            loading && styles.buttonDisabled,
+            pressed && styles.buttonPressed,
+          ]}
+          onPress={handleSignup}
+          disabled={loading}
+        >
+          <Text style={styles.buttonSecondaryText}>Crea Account</Text>
+        </Pressable>
+
+        <Text style={styles.footer}>
+          Accedendo accetti i nostri Termini e Condizioni
         </Text>
-      </Pressable>
-
-      <Pressable
-        style={[styles.buttonSecondary, loading && styles.buttonDisabled]}
-        onPress={handleSignup}
-        disabled={loading}
-      >
-        <Text style={styles.buttonSecondaryText}>Crea Account</Text>
-      </Pressable>
-    </View>
+      </Animated.View>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  content: {
+    flex: 1,
     justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    padding: 24,
+    maxWidth: 400,
+    width: "100%",
+    alignSelf: "center",
+  },
+  header: {
+    alignItems: "center",
+    marginBottom: 48,
+  },
+  logo: {
+    fontSize: 48,
+    marginBottom: 12,
+    color: "#1d9bf0",
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    marginBottom: 40,
-    textAlign: "center",
+    fontSize: 36,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#9ca3af",
+    fontWeight: "400",
   },
   googleButton: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-    marginBottom: 20,
+    backgroundColor: "#1f2937",
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#ddd",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderColor: "#374151",
+    overflow: "hidden",
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  googleIcon: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginRight: 12,
   },
   googleButtonText: {
-    color: "#000",
+    color: "#ffffff",
     fontSize: 16,
     fontWeight: "600",
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 20,
+    marginVertical: 32,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "#ddd",
+    backgroundColor: "#374151",
   },
   dividerText: {
-    marginHorizontal: 10,
-    color: "#666",
+    marginHorizontal: 16,
+    color: "#6b7280",
     fontSize: 14,
+    fontWeight: "500",
+  },
+  inputContainer: {
+    marginBottom: 16,
   },
   input: {
+    backgroundColor: "#1f2937",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 15,
-    marginBottom: 15,
+    borderColor: "#374151",
+    borderRadius: 12,
+    padding: 16,
     fontSize: 16,
+    color: "#ffffff",
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 8,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginTop: 8,
+  },
+  buttonGradient: {
+    padding: 16,
     alignItems: "center",
-    marginTop: 10,
   },
   buttonText: {
-    color: "#fff",
+    color: "#ffffff",
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   buttonSecondary: {
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 8,
+    backgroundColor: "transparent",
+    padding: 16,
+    borderRadius: 12,
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 12,
     borderWidth: 1,
-    borderColor: "#007AFF",
+    borderColor: "#374151",
   },
   buttonSecondaryText: {
-    color: "#007AFF",
+    color: "#1d9bf0",
     fontSize: 16,
     fontWeight: "600",
   },
   buttonDisabled: {
     opacity: 0.5,
+  },
+  buttonPressed: {
+    opacity: 0.8,
+  },
+  footer: {
+    marginTop: 32,
+    textAlign: "center",
+    color: "#6b7280",
+    fontSize: 12,
   },
 });

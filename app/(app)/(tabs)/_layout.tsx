@@ -5,16 +5,11 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "#999",
-        headerShown: true,
+        tabBarActiveTintColor: "#1d9bf0",
+        tabBarInactiveTintColor: "#71767b",
+        headerShown: false, // Nascondo header, verrà gestito dalle singole pagine
         tabBarStyle: {
-          backgroundColor: "#fff",
-          borderTopWidth: 1,
-          borderTopColor: "#e0e0e0",
-          height: 60,
-          paddingBottom: 8,
-          paddingTop: 8,
+          display: "none", // Nascondo la tab bar di default, uso SwipeableTabs
         },
       }}
     >
@@ -22,26 +17,41 @@ export default function TabsLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home" size={size} color={color} />
+          headerTitle: "Timeline",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "grid" : "grid-outline"}
+              size={focused ? 26 : 24}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="chat"
         options={{
-          title: "Chat",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="chatbubbles" size={size} color={color} />
+          title: "Messages",
+          headerTitle: "Messages",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "flash" : "flash-outline"}
+              size={focused ? 26 : 24}
+              color={color}
+            />
           ),
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
-          title: "Account",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
+          title: "Profile",
+          headerTitle: "Profile",
+          tabBarIcon: ({ color, size, focused }) => (
+            <Ionicons
+              name={focused ? "person-circle" : "person-circle-outline"}
+              size={focused ? 28 : 26}
+              color={color}
+            />
           ),
         }}
       />
