@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import Constants from "expo-constants";
 import { auth } from "../src/firebase";
 
@@ -11,75 +11,43 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// Crea il client Supabase con autenticazione Firebase
+// Client Supabase base (per operazioni pubbliche e realtime)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    // Usa Firebase Auth invece di Supabase Auth
     persistSession: false,
     autoRefreshToken: false,
     detectSessionInUrl: false,
   },
   realtime: {
-    // Configurazione per messaggi in tempo reale
     params: {
       eventsPerSecond: 5,
-    },
-  },
-  global: {
-    headers: {
-      // Headers di default - saranno sovrascritti dalle chiamate individuali
     },
   },
 });
 
 /**
- * Helper per ottenere headers con Firebase token
- * Usare nelle chiamate Supabase che richiedono autenticazione
+ * Ottiene un client Supabase autenticato con il token Firebase
+ * Questo client rispetta le policy RLS usando il JWT di Firebase
  */
-export async function getAuthHeaders(): Promise<Record<string, string>> {
+export async function getAuthenticatedClient(): Promise<SupabaseClient> {
   const user = auth.currentUser;
   if (!user) {
-    return {};
-  }
-
-  try {
-    const token = await user.getIdToken();
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  } catch (error) {
-    console.error("Error getting Firebase token:", error);
-    return {};
-  }
-}
-
-/**
- * Crea un client Supabase con il token Firebase corrente
- * Usare questo per chiamate autenticate
- */
-export async function getAuthenticatedSupabaseClient() {
-  const user = auth.currentUser;
-  if (!user) {
-    throw new Error("No authenticated user");
+    throw new Error("User not authenticated");
   }
 
   const token = await user.getIdToken();
 
+  // Crea un nuovo client con il token Firebase nell'header
   return createClient(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-    realtime: {
-      params: {
-        eventsPerSecond: 5,
-      },
-    },
     global: {
       headers: {
         Authorization: `Bearer ${token}`,
       },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
     },
   });
 }

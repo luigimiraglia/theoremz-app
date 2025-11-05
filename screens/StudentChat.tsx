@@ -1,39 +1,52 @@
 import { Ionicons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   fetchMessages,
-  loadMoreMessages,
   Message,
   sendMessage,
   subscribeMessages,
 } from "../lib/chatApi";
 import { bootstrapStudentChat } from "../lib/chatBootstrap";
 import { useAuth } from "../src/auth";
+import { MathEditor } from "../src/MathEditor";
+import { MathView } from "../src/MathView";
 
 export default function StudentChat() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const flatListRef = useRef<FlatList<Message>>(null);
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  // State
+  // State Supabase
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+
+  // State UI
+  const [chatMode, setChatMode] = useState<"teacher" | "ai">("teacher");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showMathEditor, setShowMathEditor] = useState(false);
+  const [currentFormula, setCurrentFormula] = useState<string | null>(null);
 
   // Bootstrap: inizializza conversazione al mount
   useEffect(() => {
@@ -54,23 +67,31 @@ export default function StudentChat() {
         const convId = await bootstrapStudentChat();
         setConversationId(convId);
 
-        // 2. Carica messaggi esistenti
-        const initialMessages = await fetchMessages(convId, 50);
+        // 2. Carica solo ultimi 30 messaggi per performance
+        const initialMessages = await fetchMessages(convId, 30);
         setMessages(initialMessages);
 
         // 3. Subscribe ai nuovi messaggi in tempo reale
+        // SOLO messaggi da altri utenti (non i nostri)
         unsubscribe = subscribeMessages(convId, (newMessage) => {
-          setMessages((prev) => [...prev, newMessage]);
+          console.log("📨 Realtime message received in component:", newMessage);
+          setMessages((prev) => {
+            // Evita duplicati: controlla se il messaggio esiste già
+            const exists = prev.some((msg) => msg.id === newMessage.id);
+            if (exists) {
+              console.log("⚠️ Message already exists, skipping");
+              return prev; // Non modificare lo state se esiste già
+            }
 
-          // Auto-scroll quando arriva un nuovo messaggio
-          setTimeout(() => {
-            flatListRef.current?.scrollToEnd({ animated: true });
-          }, 100);
+            console.log("✅ Adding new message to state");
+            // Aggiungi solo se è un messaggio nuovo
+            return [...prev, newMessage];
+          });
         });
 
         // Auto-scroll ai messaggi più recenti
         setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: false });
+          scrollViewRef.current?.scrollToEnd({ animated: false });
         }, 300);
       } catch (err: any) {
         console.error("Init error:", err);
@@ -92,95 +113,62 @@ export default function StudentChat() {
 
   // Invia messaggio
   const handleSend = async () => {
-    if (!inputText.trim() || !conversationId || sending) return;
+    if (
+      (!inputText.trim() && !selectedImage && !currentFormula) ||
+      !conversationId ||
+      sending
+    )
+      return;
 
-    const messageText = inputText.trim();
+    // Combina formula e testo
+    let finalText = "";
+    if (currentFormula) {
+      finalText = currentFormula;
+      if (inputText.trim()) {
+        finalText += " " + inputText.trim();
+      }
+    } else {
+      finalText = inputText.trim();
+    }
+
     setInputText("");
+    setSelectedImage(null);
+    setCurrentFormula(null);
     setSending(true);
 
     try {
-      await sendMessage(conversationId, messageText);
+      await sendMessage(conversationId, finalText);
 
-      // Il messaggio apparirà tramite realtime subscription
+      // Il messaggio apparirà automaticamente via realtime
       // Auto-scroll
       setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 200);
     } catch (err: any) {
       console.error("Send error:", err);
       setError(err.message || "Errore durante l'invio del messaggio");
       // Ripristina il testo in caso di errore
-      setInputText(messageText);
+      setInputText(finalText);
     } finally {
       setSending(false);
     }
   };
 
-  // Paginazione: carica messaggi più vecchi
-  const handleLoadMore = async () => {
-    if (!conversationId || loadingMore || messages.length === 0) return;
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      quality: 0.8,
+      aspect: [4, 3],
+    });
 
-    setLoadingMore(true);
-    try {
-      const oldestMessage = messages[0];
-      const olderMessages = await loadMoreMessages(
-        conversationId,
-        oldestMessage.created_at,
-        20
-      );
-
-      if (olderMessages.length > 0) {
-        setMessages((prev) => [...olderMessages, ...prev]);
-      }
-    } catch (err: any) {
-      console.error("Load more error:", err);
-    } finally {
-      setLoadingMore(false);
+    if (!result.canceled && result.assets[0]) {
+      setSelectedImage(result.assets[0].uri);
     }
   };
 
-  // Render messaggio
-  const renderMessage = ({ item }: { item: Message }) => {
-    const isMyMessage = item.sender_id === user?.uid;
-
-    return (
-      <View
-        style={[
-          styles.messageContainer,
-          isMyMessage
-            ? styles.myMessageContainer
-            : styles.otherMessageContainer,
-        ]}
-      >
-        <View
-          style={[
-            styles.messageBubble,
-            isMyMessage ? styles.myMessageBubble : styles.otherMessageBubble,
-          ]}
-        >
-          {isMyMessage ? (
-            <LinearGradient
-              colors={["#1d9bf0", "#0c7abf"]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientBubble}
-            >
-              <Text style={styles.myMessageText}>{item.body}</Text>
-            </LinearGradient>
-          ) : (
-            <View style={styles.otherBubbleContent}>
-              <Text style={styles.otherMessageText}>{item.body}</Text>
-            </View>
-          )}
-        </View>
-        <Text style={styles.timestamp}>
-          {new Date(item.created_at).toLocaleTimeString("it-IT", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Text>
-      </View>
-    );
+  const removeImage = () => {
+    setSelectedImage(null);
   };
 
   // Loading iniziale
@@ -203,107 +191,316 @@ export default function StudentChat() {
     );
   }
 
+  // Rileva se un messaggio contiene formule matematiche
+  const hasMath = (text: string) => /\$|\\\[|\\\(|\\begin\{/.test(text);
+
   return (
-    <LinearGradient
-      colors={["#000000", "#0a0a0a", "#1a1a1a"]}
-      style={styles.container}
-    >
-      {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 10 }]}>
-        <LinearGradient
-          colors={["#1d9bf0", "#0c7abf"]}
-          style={styles.headerIcon}
-        >
-          <Ionicons name="chatbubbles" size={24} color="#fff" />
-        </LinearGradient>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>Team Theoremz</Text>
-          <Text style={styles.headerSubtitle}>Chat in tempo reale</Text>
-        </View>
-      </View>
-
-      {/* Messaggi */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={renderMessage}
-        contentContainerStyle={[
-          styles.messagesList,
-          { paddingBottom: 80 }, // Spazio per input floating
-        ]}
-        showsVerticalScrollIndicator={false}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.1}
-        ListHeaderComponent={
-          loadingMore ? (
-            <ActivityIndicator
-              size="small"
-              color="#1d9bf0"
-              style={styles.loadMoreIndicator}
-            />
-          ) : null
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubble-outline" size={64} color="#71767b" />
-            <Text style={styles.emptyText}>Nessun messaggio ancora</Text>
-            <Text style={styles.emptySubtext}>
-              Inizia la conversazione con il team!
-            </Text>
-          </View>
-        }
-      />
-
-      {/* Input Floating */}
-      <View style={styles.inputFloatingContainer}>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Scrivi un messaggio..."
-            placeholderTextColor="#71767b"
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            maxLength={2000}
-            editable={!sending}
-          />
+    <View style={styles.chatContainer}>
+      <LinearGradient
+        colors={["#000000", "#0a0a0a", "#1a1a1a"]}
+        style={styles.gradient}
+      >
+        {/* Chat Selector Dropdown */}
+        <View style={[styles.chatHeader, { paddingTop: insets.top + 10 }]}>
           <Pressable
-            style={[
-              styles.sendButton,
-              (!inputText.trim() || sending) && styles.sendButtonDisabled,
-            ]}
-            onPress={handleSend}
-            disabled={!inputText.trim() || sending}
+            style={styles.chatSelector}
+            onPress={() => setShowDropdown(!showDropdown)}
           >
-            {sending ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Ionicons name="send" size={20} color="#fff" />
-            )}
+            <View style={styles.chatSelectorLeft}>
+              <LinearGradient
+                colors={
+                  chatMode === "ai"
+                    ? ["#1d9bf0", "#0c7abf"]
+                    : ["#8b5cf6", "#6d28d9"]
+                }
+                style={styles.chatSelectorIcon}
+              >
+                <Ionicons
+                  name={chatMode === "ai" ? "sparkles" : "school"}
+                  size={20}
+                  color="#fff"
+                />
+              </LinearGradient>
+              <View>
+                <Text style={styles.chatSelectorTitle}>
+                  {chatMode === "ai" ? "Assistente AI" : "Team Theoremz"}
+                </Text>
+                <Text style={styles.chatSelectorSubtitle}>
+                  {chatMode === "ai"
+                    ? "Risposte immediate 24/7"
+                    : "Il tuo team di supporto"}
+                </Text>
+              </View>
+            </View>
+            <Ionicons
+              name={showDropdown ? "chevron-up" : "chevron-down"}
+              size={24}
+              color="#71767b"
+            />
           </Pressable>
-        </View>
-      </View>
 
-      {/* Errore temporaneo */}
-      {error && conversationId && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>{error}</Text>
-          <Pressable onPress={() => setError(null)}>
-            <Ionicons name="close" size={20} color="#fff" />
-          </Pressable>
+          {/* Dropdown Menu */}
+          {showDropdown && (
+            <View style={styles.dropdownMenu}>
+              <BlurView intensity={80} tint="dark" style={styles.dropdownBlur}>
+                <Pressable
+                  style={[
+                    styles.dropdownItem,
+                    chatMode === "ai" && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => {
+                    setChatMode("ai");
+                    setShowDropdown(false);
+                  }}
+                >
+                  <LinearGradient
+                    colors={["#1d9bf0", "#0c7abf"]}
+                    style={styles.dropdownIcon}
+                  >
+                    <Ionicons name="sparkles" size={18} color="#fff" />
+                  </LinearGradient>
+                  <View style={styles.dropdownItemText}>
+                    <Text style={styles.dropdownItemTitle}>Assistente AI</Text>
+                    <Text style={styles.dropdownItemSubtitle}>
+                      Risposte immediate 24/7
+                    </Text>
+                  </View>
+                  {chatMode === "ai" && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={22}
+                      color="#1d9bf0"
+                    />
+                  )}
+                </Pressable>
+
+                <View style={styles.dropdownDivider} />
+
+                <Pressable
+                  style={[
+                    styles.dropdownItem,
+                    chatMode === "teacher" && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => {
+                    setChatMode("teacher");
+                    setShowDropdown(false);
+                  }}
+                >
+                  <LinearGradient
+                    colors={["#8b5cf6", "#6d28d9"]}
+                    style={styles.dropdownIcon}
+                  >
+                    <Ionicons name="school" size={18} color="#fff" />
+                  </LinearGradient>
+                  <View style={styles.dropdownItemText}>
+                    <Text style={styles.dropdownItemTitle}>Team Theoremz</Text>
+                    <Text style={styles.dropdownItemSubtitle}>
+                      Il tuo team di supporto
+                    </Text>
+                  </View>
+                  {chatMode === "teacher" && (
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={22}
+                      color="#8b5cf6"
+                    />
+                  )}
+                </Pressable>
+              </BlurView>
+            </View>
+          )}
         </View>
-      )}
-    </LinearGradient>
+
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onContentSizeChange={() =>
+            scrollViewRef.current?.scrollToEnd({ animated: true })
+          }
+        >
+          {messages.map((item) => {
+            const isMyMessage = item.sender_id === user?.uid;
+            return (
+              <View
+                key={item.id}
+                style={[
+                  styles.messageContainer,
+                  isMyMessage
+                    ? styles.userMessageContainer
+                    : styles.botMessageContainer,
+                ]}
+              >
+                {!isMyMessage && (
+                  <View style={styles.avatarContainer}>
+                    <LinearGradient
+                      colors={["#8b5cf6", "#6d28d9"]}
+                      style={styles.avatar}
+                    >
+                      <Ionicons name="school" size={18} color="#fff" />
+                    </LinearGradient>
+                  </View>
+                )}
+                <View style={{ maxWidth: "75%" }}>
+                  <View
+                    style={[
+                      styles.messageBubble,
+                      isMyMessage ? styles.userMessage : styles.botMessage,
+                    ]}
+                  >
+                    <View style={styles.messageTextContainer}>
+                      {hasMath(item.body) ? (
+                        <>
+                          <MathView math={item.body} />
+                          <Text
+                            style={[
+                              styles.messageText,
+                              { fontSize: 11, opacity: 0.5, marginTop: 8 },
+                            ]}
+                          >
+                            {item.body}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text
+                          style={[
+                            styles.messageText,
+                            isMyMessage
+                              ? styles.userMessageText
+                              : styles.botMessageText,
+                          ]}
+                        >
+                          {item.body}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+                {isMyMessage && (
+                  <View style={styles.avatarContainer}>
+                    <View style={styles.userAvatar}>
+                      <Ionicons name="person" size={18} color="#1d9bf0" />
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
+        >
+          <View
+            style={[
+              styles.inputWrapper,
+              {
+                paddingBottom: Math.max(insets.bottom, 10),
+                marginBottom: 80, // Spazio per le tab
+              },
+            ]}
+          >
+            <BlurView intensity={80} tint="dark" style={styles.inputBlur}>
+              {selectedImage && (
+                <View style={styles.imagePreviewContainer}>
+                  <Image
+                    source={{ uri: selectedImage }}
+                    style={styles.imagePreview}
+                    resizeMode="cover"
+                  />
+                  <TouchableOpacity
+                    onPress={removeImage}
+                    style={styles.removeImageButton}
+                  >
+                    <Text style={styles.removeImageText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              <View style={styles.inputContainer}>
+                <Pressable style={styles.attachButton} onPress={pickImage}>
+                  <Ionicons name="image-outline" size={22} color="#1d9bf0" />
+                </Pressable>
+                <Pressable
+                  style={[styles.attachButton, styles.mathButton]}
+                  onPress={() => setShowMathEditor(true)}
+                >
+                  <Text style={styles.mathButtonText}>𝑓(x)</Text>
+                </Pressable>
+                <View style={{ flex: 1 }}>
+                  {/* Anteprima formula se presente */}
+                  {currentFormula && (
+                    <View style={styles.mathPreviewInInput}>
+                      <View style={{ flex: 1, minHeight: 40 }}>
+                        <MathView math={currentFormula} />
+                      </View>
+                      <Pressable
+                        style={styles.removeMathButton}
+                        onPress={() => setCurrentFormula(null)}
+                      >
+                        <Text style={styles.removeMathText}>✕</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                  <TextInput
+                    style={styles.input}
+                    placeholder={
+                      selectedImage
+                        ? "Aggiungi un messaggio (opzionale)..."
+                        : "Ask me anything..."
+                    }
+                    placeholderTextColor="#71767b"
+                    value={inputText}
+                    onChangeText={setInputText}
+                    multiline
+                    maxLength={500}
+                    onSubmitEditing={handleSend}
+                    returnKeyType="send"
+                  />
+                </View>
+                <Pressable
+                  style={[
+                    styles.sendButtonCircle,
+                    !inputText.trim() &&
+                      !selectedImage &&
+                      !currentFormula &&
+                      styles.sendButtonDisabled,
+                  ]}
+                  onPress={handleSend}
+                  disabled={
+                    !inputText.trim() && !selectedImage && !currentFormula
+                  }
+                >
+                  <Ionicons name="arrow-up" size={20} color="#fff" />
+                </Pressable>
+              </View>
+            </BlurView>
+          </View>
+        </KeyboardAvoidingView>
+
+        {/* Editor Formule Matematiche */}
+        <MathEditor
+          visible={showMathEditor}
+          onClose={() => setShowMathEditor(false)}
+          onInsert={(latex) => {
+            setCurrentFormula(latex);
+          }}
+        />
+      </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  chatContainer: {
     flex: 1,
+    backgroundColor: "#000",
   },
-  keyboardView: {
+  gradient: {
     flex: 1,
+    width: "100%",
   },
   centerContainer: {
     flex: 1,
@@ -324,171 +521,271 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 12,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
+  chatHeader: {
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: "rgba(29, 155, 240, 0.2)",
-    gap: 12,
   },
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  chatSelector: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    marginBottom: 4,
+  },
+  chatSelectorLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  chatSelectorIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
   },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
+  chatSelectorTitle: {
+    fontSize: 16,
     fontWeight: "bold",
     color: "#fff",
+    marginBottom: 2,
   },
-  headerSubtitle: {
+  chatSelectorSubtitle: {
     fontSize: 12,
     color: "#71767b",
-    marginTop: 2,
   },
-  messagesList: {
-    padding: 16,
-    flexGrow: 1,
-  },
-  messageContainer: {
-    marginBottom: 16,
-    maxWidth: "80%",
-  },
-  myMessageContainer: {
-    alignSelf: "flex-end",
-    alignItems: "flex-end",
-  },
-  otherMessageContainer: {
-    alignSelf: "flex-start",
-    alignItems: "flex-start",
-  },
-  messageBubble: {
-    borderRadius: 18,
+  dropdownMenu: {
+    marginTop: 8,
+    borderRadius: 16,
     overflow: "hidden",
   },
-  myMessageBubble: {
-    // Gradient gestito da LinearGradient
-  },
-  otherMessageBubble: {
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
+  dropdownBlur: {
     borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 16,
   },
-  gradientBubble: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  dropdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 12,
   },
-  otherBubbleContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  dropdownItemActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
   },
-  myMessageText: {
+  dropdownIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  dropdownItemText: {
+    flex: 1,
+  },
+  dropdownItemTitle: {
+    fontSize: 15,
+    fontWeight: "600",
     color: "#fff",
-    fontSize: 15,
-    lineHeight: 20,
+    marginBottom: 2,
   },
-  otherMessageText: {
-    color: "#e7e9ea",
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  timestamp: {
-    fontSize: 11,
+  dropdownItemSubtitle: {
+    fontSize: 12,
     color: "#71767b",
-    marginTop: 4,
-    marginHorizontal: 4,
   },
-  inputFloatingContainer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  dropdownDivider: {
+    height: 1,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    marginHorizontal: 16,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  messageContainer: {
+    flexDirection: "row",
+    marginVertical: 8,
+    alignItems: "flex-end",
+  },
+  userMessageContainer: {
+    justifyContent: "flex-end",
+  },
+  botMessageContainer: {
+    justifyContent: "flex-start",
+  },
+  avatarContainer: {
+    marginHorizontal: 8,
+    marginBottom: 4,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(29, 155, 240, 0.15)",
+    borderWidth: 2,
+    borderColor: "rgba(29, 155, 240, 0.5)",
+  },
+  messageBubble: {
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  messageTextContainer: {
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    backgroundColor: "rgba(0, 0, 0, 0.95)",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(29, 155, 240, 0.2)",
+  },
+  userMessage: {
+    alignSelf: "flex-end",
+    backgroundColor: "rgba(29, 155, 240, 0.2)",
+    borderColor: "rgba(29, 155, 240, 0.3)",
+  },
+  botMessage: {
+    alignSelf: "flex-start",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
+    borderColor: "rgba(255, 255, 255, 0.1)",
+  },
+  messageText: {
+    fontSize: 15,
+    lineHeight: 21,
+  },
+  userMessageText: {
+    color: "#fff",
+  },
+  botMessageText: {
+    color: "#e7e9ea",
   },
   inputWrapper: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(29, 155, 240, 0.2)",
+  },
+  inputBlur: {
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
   inputContainer: {
     flexDirection: "row",
     alignItems: "flex-end",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    padding: 14,
   },
   input: {
     flex: 1,
     color: "#fff",
     fontSize: 15,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
     maxHeight: 100,
-    minHeight: 40,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.1)",
   },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#1d9bf0",
+  attachButton: {
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "rgba(29, 155, 240, 0.1)",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: "rgba(29, 155, 240, 0.2)",
+    marginRight: 8,
   },
-  sendButtonDisabled: {
-    backgroundColor: "#71767b",
-    opacity: 0.5,
+  mathButton: {
+    backgroundColor: "rgba(139, 92, 246, 0.15)",
+    borderColor: "rgba(139, 92, 246, 0.3)",
   },
-  loadMoreIndicator: {
-    paddingVertical: 12,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 64,
-    gap: 8,
-  },
-  emptyText: {
-    color: "#e7e9ea",
+  mathButtonText: {
     fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
+    color: "#8b5cf6",
+    fontWeight: "700",
   },
-  emptySubtext: {
-    color: "#71767b",
-    fontSize: 14,
-  },
-  errorBanner: {
-    position: "absolute",
-    top: 100,
-    left: 16,
-    right: 16,
-    backgroundColor: "#ef4444",
-    borderRadius: 12,
-    padding: 12,
+  mathPreviewInInput: {
+    backgroundColor: "rgba(139, 92, 246, 0.1)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(139, 92, 246, 0.2)",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 8,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    gap: 8,
   },
-  errorBannerText: {
+  removeMathButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(239, 68, 68, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(239, 68, 68, 0.3)",
+  },
+  removeMathText: {
+    color: "#ef4444",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  imagePreviewContainer: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(255, 255, 255, 0.1)",
+  },
+  imagePreview: {
+    width: "100%",
+    height: 220,
+    borderRadius: 16,
+    backgroundColor: "#1a1a1a",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 24,
+    right: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0, 0, 0, 0.8)",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.9)",
+  },
+  removeImageText: {
     color: "#fff",
-    fontSize: 14,
-    flex: 1,
+    fontSize: 20,
+    fontWeight: "600",
+  },
+  sendButtonCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1d9bf0",
+  },
+  sendButtonDisabled: {
+    backgroundColor: "#333",
+    opacity: 0.4,
   },
 });

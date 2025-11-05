@@ -1,6 +1,6 @@
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { auth } from "../src/firebase";
-import { getAuthenticatedSupabaseClient, supabase } from "./supabaseClient";
+import { getAuthenticatedClient, supabase } from "./supabaseClient";
 
 /**
  * Tipo per i messaggi della chat
@@ -26,7 +26,10 @@ export async function fetchMessages(
   limit: number = 50,
   before?: string
 ): Promise<Message[]> {
-  let query = supabase
+  // Usa client autenticato per RLS
+  const authClient = await getAuthenticatedClient();
+
+  let query = authClient
     .from("messages")
     .select("*")
     .eq("conversation_id", conversationId)
@@ -105,7 +108,10 @@ export async function sendMessage(
     throw new Error("User not authenticated");
   }
 
-  const { data, error } = await supabase
+  // Usa client autenticato per RLS
+  const authClient = await getAuthenticatedClient();
+
+  const { data, error } = await authClient
     .from("messages")
     .insert({
       conversation_id: conversationId,
@@ -153,7 +159,7 @@ export async function deleteMessage(messageId: string): Promise<void> {
     throw new Error("User not authenticated");
   }
 
-  const authSupabase = await getAuthenticatedSupabaseClient();
+  const authSupabase = await getAuthenticatedClient();
 
   const { error } = await authSupabase
     .from("messages")

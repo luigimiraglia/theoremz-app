@@ -1,0 +1,2 @@
+// Salvo temporaneamente gli styles dal vecchio layout per evitare di perdere il lavoro
+// Questi devono andare in StudentChat.tsx alla fine

@@ -1,5 +1,5 @@
 import { auth } from "../src/firebase";
-import { supabase } from "./supabaseClient";
+import { getAuthenticatedClient } from "./supabaseClient";
 
 /**
  * Bootstrap della chat per lo studente
@@ -19,9 +19,11 @@ export async function bootstrapStudentChat(): Promise<string> {
   try {
     console.log("Bootstrapping chat for user:", user.uid);
 
-    // 2. Assicura che il profilo esista
-    // Usa Firebase UID come ID del profilo
-    const { data: profileData, error: profileError } = await supabase
+    // 2. Usa il client autenticato per tutte le operazioni
+    const authClient = await getAuthenticatedClient();
+
+    // 3. Assicura che il profilo esista
+    const { data: profileData, error: profileError } = await authClient
       .from("profiles")
       .upsert(
         {
@@ -48,8 +50,8 @@ export async function bootstrapStudentChat(): Promise<string> {
 
     console.log("Profile ensured:", profileData);
 
-    // 3. Cerca conversazione esistente per questo studente
-    const { data: existingConversation, error: searchError } = await supabase
+    // 4. Cerca conversazione esistente per questo studente
+    const { data: existingConversation, error: searchError } = await authClient
       .from("conversations")
       .select("id, created_at")
       .eq("student_id", user.uid)
@@ -61,18 +63,18 @@ export async function bootstrapStudentChat(): Promise<string> {
       throw new Error(`Failed to search conversation: ${searchError.message}`);
     }
 
-    // 4. Se esiste, ritorna l'ID
+    // 5. Se esiste, ritorna l'ID
     if (existingConversation) {
       console.log("Found existing conversation:", existingConversation.id);
       return existingConversation.id;
     }
 
-    // 5. Altrimenti crea nuova conversazione
-    const { data: newConversation, error: conversationError } = await supabase
+    // 6. Altrimenti crea nuova conversazione
+    const { data: newConversation, error: conversationError } = await authClient
       .from("conversations")
       .insert({
         student_id: user.uid,
-        status: "open", // Provo con "open" invece di "active"
+        status: "open",
       })
       .select()
       .single();
