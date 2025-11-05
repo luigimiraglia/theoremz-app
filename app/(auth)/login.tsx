@@ -31,10 +31,12 @@ export default function Login() {
   const [scaleAnim] = useState(new Animated.Value(0.95));
 
   const googleWebClientId = Constants.expoConfig?.extra?.googleWebClientId;
+  const googleIosClientId = Constants.expoConfig?.extra?.googleIosClientId;
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     webClientId: googleWebClientId,
-    iosClientId: googleWebClientId,
+    iosClientId: googleIosClientId,
+    redirectUri: "https://auth.expo.io/@luigimiraglia/theoremz-app",
   });
 
   useEffect(() => {

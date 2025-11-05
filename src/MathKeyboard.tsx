@@ -1,13 +1,16 @@
-import React from "react";
-import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import React from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 interface MathKeyboardProps {
   onInsert: (text: string) => void;
   onClose: () => void;
 }
 
-export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose }) => {
+export const MathKeyboard: React.FC<MathKeyboardProps> = ({
+  onInsert,
+  onClose,
+}) => {
   const mathSymbols = [
     // Operatori base
     { label: "+", latex: "+" },
@@ -16,7 +19,7 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose })
     { label: "÷", latex: "\\div" },
     { label: "=", latex: "=" },
     { label: "≠", latex: "\\neq" },
-    
+
     // Frazioni e potenze
     { label: "x²", latex: "^{2}" },
     { label: "xⁿ", latex: "^{n}" },
@@ -24,7 +27,7 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose })
     { label: "x/y", latex: "\\frac{x}{y}" },
     { label: "√", latex: "\\sqrt{x}" },
     { label: "ⁿ√", latex: "\\sqrt[n]{x}" },
-    
+
     // Relazioni
     { label: "<", latex: "<" },
     { label: ">", latex: ">" },
@@ -32,14 +35,14 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose })
     { label: "≥", latex: "\\geq" },
     { label: "≈", latex: "\\approx" },
     { label: "∞", latex: "\\infty" },
-    
+
     // Calcolo
     { label: "∫", latex: "\\int" },
     { label: "∑", latex: "\\sum" },
     { label: "∏", latex: "\\prod" },
     { label: "lim", latex: "\\lim_{x \\to \\infty}" },
     { label: "d/dx", latex: "\\frac{d}{dx}" },
-    
+
     // Lettere greche comuni
     { label: "α", latex: "\\alpha" },
     { label: "β", latex: "\\beta" },
@@ -51,7 +54,7 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose })
     { label: "σ", latex: "\\sigma" },
     { label: "Σ", latex: "\\Sigma" },
     { label: "Δ", latex: "\\Delta" },
-    
+
     // Parentesi
     { label: "( )", latex: "()" },
     { label: "[ ]", latex: "[]" },
@@ -67,8 +70,8 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose })
           <Ionicons name="close" size={24} color="#fff" />
         </Pressable>
       </View>
-      
-      <ScrollView 
+
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.symbolsContainer}
         showsVerticalScrollIndicator={false}
@@ -83,7 +86,7 @@ export const MathKeyboard: React.FC<MathKeyboardProps> = ({ onInsert, onClose })
           </Pressable>
         ))}
       </ScrollView>
-      
+
       <View style={styles.footer}>
         <Text style={styles.helpText}>
           Tocca un simbolo per inserirlo nella formula

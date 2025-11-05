@@ -1,15 +1,15 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Modal,
-  ScrollView,
-  TextInput,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
+import React, { useState } from "react";
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { MathView } from "./MathView";
 
 interface MathEditorProps {
@@ -54,7 +54,7 @@ export const MathEditor: React.FC<MathEditorProps> = ({
     const newFormula = before + text + after;
     setFormula(newFormula);
     setCursorPosition(cursorPosition + text.length);
-    
+
     // Se c'è un #, sposta il cursore lì
     const hashIndex = newFormula.indexOf("#", cursorPosition);
     if (hashIndex !== -1) {
@@ -97,9 +97,7 @@ export const MathEditor: React.FC<MathEditorProps> = ({
                   <MathView math={`$${formula}$`} />
                 </View>
               ) : (
-                <Text style={styles.emptyText}>
-                  La formula apparirà qui
-                </Text>
+                <Text style={styles.emptyText}>La formula apparirà qui</Text>
               )}
             </View>
 
@@ -231,11 +229,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   previewBox: {
-    backgroundColor: "rgba(139, 92, 246, 0.1)",
+    backgroundColor: "rgba(43, 127, 255, 0.08)",
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: "rgba(139, 92, 246, 0.3)",
+    borderColor: "rgba(43, 127, 255, 0.2)",
     minHeight: 80,
     justifyContent: "center",
   },
@@ -268,24 +266,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   templateButton: {
-    backgroundColor: "rgba(29, 155, 240, 0.15)",
+    backgroundColor: "rgba(43, 127, 255, 0.12)",
     borderRadius: 16,
     padding: 12,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: "rgba(29, 155, 240, 0.3)",
+    borderColor: "rgba(43, 127, 255, 0.25)",
     alignItems: "center",
     minWidth: 80,
   },
   templateDisplay: {
     fontSize: 24,
-    color: "#1d9bf0",
+    color: "#2b7fff",
     fontWeight: "600",
     marginBottom: 4,
   },
   templateName: {
     fontSize: 11,
-    color: "#1d9bf0",
+    color: "#2b7fff",
   },
   symbolScroll: {
     marginTop: 12,
@@ -298,16 +296,16 @@ const styles = StyleSheet.create({
   symbolButton: {
     width: 50,
     height: 50,
-    backgroundColor: "rgba(139, 92, 246, 0.15)",
+    backgroundColor: "rgba(43, 127, 255, 0.12)",
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(139, 92, 246, 0.3)",
+    borderColor: "rgba(43, 127, 255, 0.25)",
   },
   symbolText: {
     fontSize: 22,
-    color: "#8b5cf6",
+    color: "#2b7fff",
     fontWeight: "600",
   },
   actions: {
@@ -334,7 +332,7 @@ const styles = StyleSheet.create({
     flex: 2,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: "#8b5cf6",
+    backgroundColor: "#2b7fff",
     alignItems: "center",
   },
   insertButtonDisabled: {

@@ -41,6 +41,9 @@ export default (): ExpoConfig => ({
       appId: process.env.FIREBASE_APP_ID,
     },
     googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
+    googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
+    supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     eas: { projectId: "..." },
   },
 });

@@ -7,6 +7,7 @@ import {
   PanResponder,
   Pressable,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -14,9 +15,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const TABS = [
-  { name: "home", icon: "calendar" },
-  { name: "chat", icon: "chatbubbles" },
-  { name: "account", icon: "person" },
+  { name: "home", icon: "home", label: "Home" },
+  { name: "chat", icon: "chatbubbles", label: "Chat" },
+  { name: "account", icon: "person", label: "Account" },
 ];
 
 interface SwipeableTabContainerProps {
@@ -146,15 +147,30 @@ export function SwipeableTabContainer({
                 style={styles.tabButton}
                 onPress={() => handleTabPress(index)}
               >
-                <Ionicons
-                  name={
-                    isActive
-                      ? (tab.icon as any)
-                      : (`${tab.icon}-outline` as any)
-                  }
-                  size={isActive ? 26 : 24}
-                  color={isActive ? "#1d9bf0" : "#71767b"}
-                />
+                {isActive && <View style={styles.activeTabBackground} />}
+                <View style={{ position: "relative" }}>
+                  <Ionicons
+                    name={
+                      isActive
+                        ? (tab.icon as any)
+                        : (`${tab.icon}-outline` as any)
+                    }
+                    size={22}
+                    color={isActive ? "#2b7fff" : "#71767b"}
+                    style={{ marginBottom: 2 }}
+                  />
+                  {/* Badge notifiche per Chat tab */}
+                  {tab.name === "chat" && index !== currentIndex && (
+                    <View style={styles.tabBadge}>
+                      <Text style={styles.tabBadgeText}>3</Text>
+                    </View>
+                  )}
+                </View>
+                <Text
+                  style={[styles.tabLabel, isActive && styles.tabLabelActive]}
+                >
+                  {tab.label}
+                </Text>
               </Pressable>
             );
           })}
@@ -180,29 +196,66 @@ const styles = StyleSheet.create({
   },
   tabBarContainer: {
     position: "absolute",
-    left: 30,
-    right: 30,
-    height: 65,
+    left: 24,
+    right: 24,
+    height: 60,
   },
   tabBarBlur: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    backgroundColor: "rgba(0, 0, 0, 0.75)",
-    borderRadius: 35,
-    borderWidth: 1.5,
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    backgroundColor: "rgba(15, 23, 42, 0.95)",
+    borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
+    shadowColor: "#2b7fff",
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 20,
+    shadowRadius: 24,
+    elevation: 15,
   },
   tabButton: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 8,
+    position: "relative",
+  },
+  activeTabBackground: {
+    position: "absolute",
+    top: 4,
+    left: 12,
+    right: 12,
+    bottom: 4,
+    borderRadius: 14,
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+  },
+  tabLabel: {
+    fontSize: 10,
+    color: "#71767b",
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  tabLabelActive: {
+    color: "#2b7fff",
+  },
+  tabBadge: {
+    position: "absolute",
+    top: -6,
+    right: -10,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: "#ef4444",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 5,
+    borderWidth: 2,
+    borderColor: "#0f172a",
+  },
+  tabBadgeText: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: "#fff",
   },
 });

@@ -41,7 +41,7 @@ function Gate() {
     // Se sei autenticato e SEI nella sezione auth, vai alla home
     else if (status === "authed" && inAuth) {
       console.log("Redirecting to home (authed, in auth section)");
-      router.replace("/(app)/(tabs)/home");
+      router.replace("/(app)");
     }
     // Se sei guest e SEI in auth, rimani lì (nessun redirect)
     // Se sei authed e NON sei in auth, rimani lì (nessun redirect)
