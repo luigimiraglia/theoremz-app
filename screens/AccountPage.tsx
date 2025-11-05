@@ -1,7 +1,8 @@
+import { styles } from "@/app/components/App.styles";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/auth";
 import { Toast } from "../src/Toast";
@@ -47,19 +48,124 @@ export default function AccountPage() {
       >
         {/* Header Profilo */}
         <View style={styles.profileHeader}>
-          <LinearGradient
-            colors={["#2b7fff", "#1e6edb"]}
-            style={styles.profileAvatar}
-          >
-            <Text style={styles.profileAvatarText}>LM</Text>
-          </LinearGradient>
+          <View style={styles.profileAvatarContainer}>
+            <LinearGradient
+              colors={["#2b7fff", "#1e6edb"]}
+              style={styles.profileAvatar}
+            >
+              <Text style={styles.profileAvatarText}>LM</Text>
+            </LinearGradient>
+            <View style={styles.profileBadge}>
+              <Ionicons name="school" size={14} color="#fff" />
+            </View>
+          </View>
           <Text style={styles.profileName}>Luigi Miraglia</Text>
           <Text style={styles.profileEmail}>ermattissimo@gmail.com</Text>
+          <View style={styles.profileStats}>
+            <View style={styles.statItem}>
+              <Text style={styles.accountStatValue}>156</Text>
+              <Text style={styles.accountStatLabel}>Problemi risolti</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.accountStatValue}>24</Text>
+              <Text style={styles.accountStatLabel}>Giorni di streak</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.accountStatValue}>8.5</Text>
+              <Text style={styles.accountStatLabel}>Media voti</Text>
+            </View>
+          </View>
         </View>
 
-        {/* Impostazioni */}
+        {/* Sezione Corsi */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Impostazioni</Text>
+          <Text style={styles.accountSectionTitle}>I miei corsi</Text>
+          <View style={styles.courseCard}>
+            <View style={styles.courseIconContainer}>
+              <LinearGradient
+                colors={["#2b7fff", "#1e6edb"]}
+                style={styles.courseIcon}
+              >
+                <Ionicons name="calculator" size={24} color="#fff" />
+              </LinearGradient>
+            </View>
+            <View style={styles.courseInfo}>
+              <Text style={styles.courseTitle}>Analisi Matematica I</Text>
+              <Text style={styles.courseSubtitle}>Prof. Rossi • 12 CFU</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: "75%" }]} />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.courseCard}>
+            <View style={styles.courseIconContainer}>
+              <LinearGradient
+                colors={["#10b981", "#059669"]}
+                style={styles.courseIcon}
+              >
+                <Ionicons name="planet" size={24} color="#fff" />
+              </LinearGradient>
+            </View>
+            <View style={styles.courseInfo}>
+              <Text style={styles.courseTitle}>Fisica Generale</Text>
+              <Text style={styles.courseSubtitle}>Prof. Bianchi • 9 CFU</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: "60%" }]} />
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.courseCard}>
+            <View style={styles.courseIconContainer}>
+              <LinearGradient
+                colors={["#2b7fff", "#1e6edb"]}
+                style={styles.courseIcon}
+              >
+                <Ionicons name="git-branch" size={24} color="#fff" />
+              </LinearGradient>
+            </View>
+            <View style={styles.courseInfo}>
+              <Text style={styles.courseTitle}>Algebra Lineare</Text>
+              <Text style={styles.courseSubtitle}>Prof. Verdi • 6 CFU</Text>
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: "90%" }]} />
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* Sezione Obiettivi */}
+        <View style={styles.section}>
+          <Text style={styles.accountSectionTitle}>Obiettivi settimanali</Text>
+          <View style={styles.goalCard}>
+            <View style={styles.goalHeader}>
+              <Ionicons name="trophy" size={20} color="#f59e0b" />
+              <Text style={styles.goalTitle}>Risolvi 10 esercizi</Text>
+            </View>
+            <Text style={styles.goalProgress}>7/10 completati</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: "70%" }]} />
+            </View>
+          </View>
+
+          <View style={styles.goalCard}>
+            <View style={styles.goalHeader}>
+              <Ionicons name="flame" size={20} color="#ef4444" />
+              <Text style={styles.goalTitle}>Mantieni lo streak</Text>
+            </View>
+            <Text style={styles.goalProgress}>24 giorni consecutivi 🔥</Text>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: "100%" }]} />
+            </View>
+          </View>
+        </View>
+
+        {/* Sezione Impostazioni */}
+        <View style={styles.section}>
+          <Text style={styles.accountSectionTitle}>Impostazioni</Text>
 
           <Pressable style={styles.settingItem}>
             <View style={styles.settingLeft}>
@@ -74,20 +180,48 @@ export default function AccountPage() {
               <Ionicons name="language" size={22} color="#2b7fff" />
               <Text style={styles.settingText}>Lingua</Text>
             </View>
-            <Text style={styles.settingValue}>Italiano</Text>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>Italiano</Text>
+              <Ionicons name="chevron-forward" size={20} color="#71767b" />
+            </View>
           </Pressable>
 
-          <Pressable style={styles.settingItem} onPress={handleLogout}>
+          <Pressable style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="moon" size={22} color="#1d9bf0" />
+              <Text style={styles.settingText}>Tema scuro</Text>
+            </View>
+            <View style={styles.switchContainer}>
+              <View style={styles.switchOn}>
+                <View style={styles.switchThumb} />
+              </View>
+            </View>
+          </Pressable>
+
+          <Pressable style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="help-circle" size={22} color="#1d9bf0" />
+              <Text style={styles.settingText}>Aiuto e supporto</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#71767b" />
+          </Pressable>
+
+          <Pressable
+            style={[styles.settingItem, { borderBottomWidth: 0 }]}
+            onPress={handleLogout}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="log-out" size={22} color="#ef4444" />
               <Text style={[styles.settingText, { color: "#ef4444" }]}>
                 Esci
               </Text>
             </View>
+            <Ionicons name="chevron-forward" size={20} color="#71767b" />
           </Pressable>
         </View>
 
-        <Text style={styles.footerText}>Theoremz v1.0.0</Text>
+        {/* Footer */}
+        <Text style={styles.footerText}>Theoremz v1.0.0 • Made with 💜</Text>
       </ScrollView>
 
       <Toast
@@ -99,74 +233,3 @@ export default function AccountPage() {
     </LinearGradient>
   );
 }
-
-const styles = StyleSheet.create({
-  gradient: { flex: 1 },
-  container: { flex: 1 },
-  profileHeader: {
-    alignItems: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 16,
-  },
-  profileAvatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  profileAvatarText: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#fff",
-  },
-  profileName: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 4,
-  },
-  profileEmail: {
-    fontSize: 14,
-    color: "#71767b",
-  },
-  section: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 16,
-  },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  settingLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  settingText: {
-    fontSize: 16,
-    color: "#fff",
-  },
-  settingValue: {
-    fontSize: 14,
-    color: "#71767b",
-  },
-  footerText: {
-    textAlign: "center",
-    color: "#71767b",
-    fontSize: 12,
-    paddingVertical: 24,
-  },
-});
