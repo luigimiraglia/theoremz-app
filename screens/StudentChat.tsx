@@ -50,7 +50,7 @@ export default function StudentChat() {
 
   // Bootstrap: inizializza conversazione al mount
   useEffect(() => {
-    let unsubscribe: (() => void) | null = null;
+    let unsubscribeFn: (() => void) | null = null;
 
     async function init() {
       if (!user) {
@@ -72,19 +72,16 @@ export default function StudentChat() {
         setMessages(initialMessages);
 
         // 3. Subscribe ai nuovi messaggi in tempo reale
-        // SOLO messaggi da altri utenti (non i nostri)
-        unsubscribe = subscribeMessages(convId, (newMessage) => {
-          console.log("📨 Realtime message received in component:", newMessage);
+        unsubscribeFn = subscribeMessages(convId, (newMessage) => {
+          console.log("[StudentChat] Received new message from subscription:", newMessage);
+          
           setMessages((prev) => {
-            // Evita duplicati: controlla se il messaggio esiste già
             const exists = prev.some((msg) => msg.id === newMessage.id);
             if (exists) {
-              console.log("⚠️ Message already exists, skipping");
-              return prev; // Non modificare lo state se esiste già
+              console.log("[StudentChat] Message already exists, skipping:", newMessage.id);
+              return prev;
             }
-
-            console.log("✅ Adding new message to state");
-            // Aggiungi solo se è un messaggio nuovo
+            console.log("[StudentChat] Adding new message:", newMessage.id);
             return [...prev, newMessage];
           });
         });
@@ -105,8 +102,8 @@ export default function StudentChat() {
 
     // Cleanup
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
+      if (unsubscribeFn) {
+        unsubscribeFn();
       }
     };
   }, [user]);

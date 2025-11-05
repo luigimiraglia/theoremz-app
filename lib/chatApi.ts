@@ -60,12 +60,12 @@ export async function fetchMessages(
  */
 export function subscribeMessages(
   conversationId: string,
-  onInsert: (message: Message) => void
+  callback: (message: Message) => void
 ): () => void {
-  const channelName = `messages:${conversationId}`;
+  console.log("[subscribeMessages] Subscribing to conversation:", conversationId);
 
   const channel: RealtimeChannel = supabase
-    .channel(channelName)
+    .channel(`messages:${conversationId}`)
     .on(
       "postgres_changes",
       {
@@ -75,20 +75,19 @@ export function subscribeMessages(
         filter: `conversation_id=eq.${conversationId}`,
       },
       (payload) => {
-        console.log("New message received:", payload);
+        console.log("[Realtime] Received INSERT event:", payload);
         if (payload.new) {
-          onInsert(payload.new as Message);
+          callback(payload.new as Message);
         }
       }
     )
     .subscribe((status) => {
-      console.log(`Realtime subscription status: ${status}`);
+      console.log("[Realtime] Subscription status:", status);
     });
 
-  // Ritorna funzione di cleanup
   return () => {
-    console.log("Unsubscribing from", channelName);
-    supabase.removeChannel(channel);
+    console.log("[subscribeMessages] Unsubscribing from conversation:", conversationId);
+    channel.unsubscribe();
   };
 }
 
