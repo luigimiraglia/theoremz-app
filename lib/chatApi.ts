@@ -33,7 +33,7 @@ export async function fetchMessages(
     .from("messages")
     .select("*")
     .eq("conversation_id", conversationId)
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false })
     .limit(limit);
 
   // Paginazione: messaggi prima di una certa data
@@ -48,7 +48,8 @@ export async function fetchMessages(
     throw new Error(`Failed to fetch messages: ${error.message}`);
   }
 
-  return (data || []) as Message[];
+  // Inverti l'array per mostrare i messaggi dal più vecchio al più recente
+  return data ? data.reverse() : [];
 }
 
 /**
@@ -62,7 +63,10 @@ export function subscribeMessages(
   conversationId: string,
   callback: (message: Message) => void
 ): () => void {
-  console.log("[subscribeMessages] Subscribing to conversation:", conversationId);
+  console.log(
+    "[subscribeMessages] Subscribing to conversation:",
+    conversationId
+  );
 
   const channel: RealtimeChannel = supabase
     .channel(`messages:${conversationId}`)
@@ -86,7 +90,10 @@ export function subscribeMessages(
     });
 
   return () => {
-    console.log("[subscribeMessages] Unsubscribing from conversation:", conversationId);
+    console.log(
+      "[subscribeMessages] Unsubscribing from conversation:",
+      conversationId
+    );
     channel.unsubscribe();
   };
 }
@@ -170,4 +177,58 @@ export async function deleteMessage(messageId: string): Promise<void> {
     console.error("Error deleting message:", error);
     throw new Error(`Failed to delete message: ${error.message}`);
   }
+}
+
+/**
+ * Recupera tutte le conversazioni (solo per tutor)
+ * Ritorna lista di conversazioni con ultimo messaggio e info studente
+ */
+export async function fetchAllConversations(): Promise<any[]> {
+  const authClient = await getAuthenticatedClient();
+
+  // Recupera solo le conversazioni e i messaggi
+  const { data, error } = await authClient
+    .from("conversations")
+    .select(`
+      id,
+      created_at,
+      updated_at,
+      student_id,
+      messages(
+        id,
+        body,
+        created_at,
+        sender_id
+      )
+    `)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching conversations:", error);
+    throw new Error(`Failed to fetch conversations: ${error.message}`);
+  }
+
+  // Recupera i profili degli studenti in batch
+  const studentIds = (data || []).map((conv: any) => conv.student_id);
+  const { data: profiles, error: profilesError } = await authClient
+    .from("profiles")
+    .select("id, email, full_name, avatar_url")
+    .in("id", studentIds);
+
+  if (profilesError) {
+    console.error("Error fetching student profiles:", profilesError);
+    throw new Error(`Failed to fetch student profiles: ${profilesError.message}`);
+  }
+
+  // Mappa i profili agli id
+  const profilesMap = Object.fromEntries(
+    (profiles || []).map((p: any) => [p.id, p])
+  );
+
+  // Aggiungi l'ultimo messaggio e il profilo studente a ogni conversazione
+  return (data || []).map((conv: any) => ({
+    ...conv,
+    lastMessage: conv.messages?.[conv.messages.length - 1] || null,
+    student: profilesMap[conv.student_id] || null,
+  }));
 }

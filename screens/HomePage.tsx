@@ -6,9 +6,19 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "../src/auth";
 import { Toast } from "../src/Toast";
+import TutorDashboard from "./TutorDashboard";
+import TutorChat from "./TutorChat";
 
 export default function HomePage() {
   const { user } = useAuth();
+
+  // Hooks per il tutor
+  const [tutorSelectedConversation, setTutorSelectedConversation] = useState<{
+    id: string;
+    studentName: string;
+  } | null>(null);
+
+  // Hooks per lo studente
   const insets = useSafeAreaInsets();
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [toast, setToast] = useState<{
@@ -16,6 +26,29 @@ export default function HomePage() {
     message: string;
     type: "success" | "error" | "info";
   }>({ visible: false, message: "", type: "success" });
+
+  // Se l'utente è un tutor, mostra il dashboard/chat del tutor
+  if (user?.role === "tutor") {
+    if (tutorSelectedConversation) {
+      return (
+        <TutorChat
+          conversationId={tutorSelectedConversation.id}
+          studentName={tutorSelectedConversation.studentName}
+          onBack={() => setTutorSelectedConversation(null)}
+        />
+      );
+    }
+
+    return (
+      <TutorDashboard
+        onSelectConversation={(conversationId, studentName) => {
+          setTutorSelectedConversation({ id: conversationId, studentName });
+        }}
+      />
+    );
+  }
+
+  // Altrimenti mostra l'interfaccia studente normale
 
   // Dati statistiche utente
   const userStats = {

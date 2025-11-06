@@ -1,0 +1,16 @@
+<!-- 
+  Placeholder per l'icona delle notifiche.
+  
+  Sostituisci questo file con un'icona PNG per le notifiche.
+  
+  Requisiti:
+  - Formato: PNG con sfondo trasparente
+  - Dimensioni consigliate: 96x96 px
+  - Colori: Semplice, monocromatico (bianco funziona bene)
+  - Stile: Icona piatta, senza ombreggiature
+  
+  Puoi usare la stessa icona dell'app o crearne una specifica per le notifiche.
+  
+  Per ora, copia icon.png in notification-icon.png:
+  cp assets/images/icon.png assets/images/notification-icon.png
+-->

@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.theoremz.app"
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +44,22 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "firebase": {
+        "apiKey": "AIzaSyB-uNBGYOFg4ts83tGUVBX5rR_pD01_kuM",
+        "authDomain": "theoremz-login.firebaseapp.com",
+        "projectId": "theoremz-login",
+        "appId": "1:527958805167:web:20658414672a2ca784a25a"
+      },
+      "googleWebClientId": "527958805167-usv8mlroid1dvcbbh0us8h3l5ha2j3k1.apps.googleusercontent.com",
+      "googleIosClientId": "527958805167-5dmsrpmgktl4t8daid2tkucek2rg9m7l.apps.googleusercontent.com",
+      "supabaseUrl": "https://efexpxtdtimeamctqiik.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVmZXhweHRkdGltZWFtY3RxaWlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxMTg5NTksImV4cCI6MjA3NTY5NDk1OX0.-3gBd9r2cSWKyLwqRLJiO9WNDymqvkW-PxL9jKnqMVE",
+      "router": {},
+      "eas": {
+        "projectId": "26600497-9ac8-4206-b403-5f0138a11e5a"
+      }
     }
   }
 }

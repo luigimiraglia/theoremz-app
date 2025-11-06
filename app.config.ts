@@ -18,6 +18,10 @@ export default (): ExpoConfig => ({
   },
   ios: {
     supportsTablet: true,
+    bundleIdentifier: "com.theoremz.app",
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     adaptiveIcon: {
@@ -42,8 +46,11 @@ export default (): ExpoConfig => ({
     },
     googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
     googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
+    googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID,
     supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
     supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    eas: { projectId: "..." },
+    eas: {
+      projectId: "26600497-9ac8-4206-b403-5f0138a11e5a",
+    },
   },
 });

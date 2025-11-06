@@ -2,10 +2,16 @@
 import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "./firebase";
+import { supabase } from "../lib/supabaseClient";
 
 // tipi e valore di default per il context
 type Status = "checking" | "guest" | "authed";
-type Ctx = { status: Status; user: User | null; logout: () => Promise<void> };
+type UserWithRole = User & { role?: "student" | "tutor" };
+type Ctx = { 
+  status: Status; 
+  user: UserWithRole | null; 
+  logout: () => Promise<void> 
+};
 
 const AuthCtx = createContext<Ctx>({
   status: "checking",
@@ -15,11 +21,31 @@ const AuthCtx = createContext<Ctx>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<Status>("checking");
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserWithRole | null>(null);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, (u) => {
-      setUser(u);
+    return onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        // Carica il ruolo dell'utente da Supabase
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", u.uid)
+            .single();
+          
+          const userWithRole: UserWithRole = {
+            ...u,
+            role: profile?.role || "student", // Default a studente
+          };
+          setUser(userWithRole);
+        } catch (err) {
+          console.error("Error fetching user role:", err);
+          setUser({ ...u, role: "student" });
+        }
+      } else {
+        setUser(null);
+      }
       setStatus(u ? "authed" : "guest");
     });
   }, []);

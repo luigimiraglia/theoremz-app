@@ -34,9 +34,8 @@ export default function Login() {
   const googleIosClientId = Constants.expoConfig?.extra?.googleIosClientId;
 
   const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: googleWebClientId,
+    clientId: googleWebClientId,
     iosClientId: googleIosClientId,
-    redirectUri: "https://auth.expo.io/@luigimiraglia/theoremz-app",
   });
 
   useEffect(() => {

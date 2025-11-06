@@ -3,6 +3,7 @@ import { BlurView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useEffect, useRef, useState } from "react";
+import { Toast } from "../src/Toast";
 import {
   ActivityIndicator,
   Image,
@@ -48,6 +49,11 @@ export default function StudentChat() {
   const [showMathEditor, setShowMathEditor] = useState(false);
   const [currentFormula, setCurrentFormula] = useState<string | null>(null);
 
+  // Toast state
+  const [toast, setToast] = useState<{ visible: boolean; message: string; type: "success" | "error" | "info" }>(
+    { visible: false, message: "", type: "info" }
+  );
+
   // Bootstrap: inizializza conversazione al mount
   useEffect(() => {
     let unsubscribeFn: (() => void) | null = null;
@@ -67,19 +73,33 @@ export default function StudentChat() {
         const convId = await bootstrapStudentChat();
         setConversationId(convId);
 
-        // 2. Carica solo ultimi 30 messaggi per performance
-        const initialMessages = await fetchMessages(convId, 30);
+        // 2. Carica ultimi 100 messaggi
+        const initialMessages = await fetchMessages(convId, 100);
         setMessages(initialMessages);
 
         // 3. Subscribe ai nuovi messaggi in tempo reale
         unsubscribeFn = subscribeMessages(convId, (newMessage) => {
-          console.log("[StudentChat] Received new message from subscription:", newMessage);
-          
+          console.log(
+            "[StudentChat] Received new message from subscription:",
+            newMessage
+          );
+
           setMessages((prev) => {
             const exists = prev.some((msg) => msg.id === newMessage.id);
             if (exists) {
-              console.log("[StudentChat] Message already exists, skipping:", newMessage.id);
+              console.log(
+                "[StudentChat] Message already exists, skipping:",
+                newMessage.id
+              );
               return prev;
+            }
+            // Show toast only if the message is NOT sent by the current user
+            if (newMessage.sender_id !== user?.uid) {
+              setToast({
+                visible: true,
+                message: "Nuovo messaggio ricevuto!",
+                type: "info",
+              });
             }
             console.log("[StudentChat] Adding new message:", newMessage.id);
             return [...prev, newMessage];
@@ -193,6 +213,12 @@ export default function StudentChat() {
 
   return (
     <View style={styles.chatContainer}>
+      <Toast
+        visible={toast.visible}
+        message={toast.message}
+        type={toast.type}
+        onHide={() => setToast({ ...toast, visible: false })}
+      />
       <LinearGradient
         colors={["#000000", "#0a0a0a", "#1a1a1a"]}
         style={styles.gradient}
